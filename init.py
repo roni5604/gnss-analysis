@@ -10,8 +10,10 @@ from gnssutils import EphemerisManager
 import matplotlib.pyplot as plt
 
 def main():
+
+
     # Get path to sample file in data directory, which is located in the parent directory of this notebook
-    input_filepath = os.path.join(parent_directory, 'data', 'sample', 'gnss_log_2020_12_02_17_19_39.txt')
+    input_filepath = os.path.join(parent_directory ,'gnss-analysis' , 'data', 'sample', 'gnss_log_2020_12_02_17_19_39.txt')
     android_fixes = []
     measurements = []
 
@@ -46,6 +48,8 @@ def main():
 
     # Convert columns to numeric representation
     measurements['Cn0DbHz'] = pd.to_numeric(measurements['Cn0DbHz'])
+    # Adding a new column for CH0 based on Cn0DbHz
+    measurements['CH0'] = measurements['Cn0DbHz']  # Copying or transforming the C/N0 data
     measurements['TimeNanos'] = pd.to_numeric(measurements['TimeNanos'])
     measurements['FullBiasNanos'] = pd.to_numeric(measurements['FullBiasNanos'])
     measurements['ReceivedSvTimeNanos'] = pd.to_numeric(measurements['ReceivedSvTimeNanos'])
@@ -100,27 +104,27 @@ def main():
 
     manager = EphemerisManager(ephemeris_data_directory)
     #
-    # epoch = 0
-    # num_sats = 0
-    # while num_sats < 5:
-    #     one_epoch = measurements.loc[
-    #         (measurements['Epoch'] == epoch) & (measurements['prSeconds'] < 0.1)].drop_duplicates(subset='SvName')
-    #     timestamp = one_epoch.iloc[0]['UnixTime'].to_pydatetime(warn=False)
-    #     one_epoch.set_index('SvName', inplace=True)
-    #     num_sats = len(one_epoch.index)
-    #     epoch += 1
+    epoch = 0
+    num_sats = 0
+    while num_sats < 5:
+         one_epoch = measurements.loc[
+             (measurements['Epoch'] == epoch) & (measurements['prSeconds'] < 0.1)].drop_duplicates(subset='SvName')
+         timestamp = one_epoch.iloc[0]['UnixTime'].to_pydatetime(warn=False)
+         one_epoch.set_index('SvName', inplace=True)
+         num_sats = len(one_epoch.index)
+         epoch += 1
     #
-    # sats = one_epoch.index.unique().tolist()
-    # ephemeris = manager.get_ephemeris(timestamp, sats)
+    sats = one_epoch.index.unique().tolist()
+    ephemeris = manager.get_ephemeris(timestamp, sats)
     # print(timestamp)
     # print(one_epoch[['UnixTime', 'tTxSeconds', 'GpsWeekNumber']])
 
 
     ################# Probably redundant
 
-    # sv_position = calculate_satellite_position(ephemeris, one_epoch)
-    # print(sv_position)
-    #sv_position.to_csv("result_assignment_2.csv", sep=',')
+    sv_position = calculate_satellite_position(ephemeris, one_epoch)
+    print(sv_position)
+    sv_position.to_csv("result_assignment_2.csv", sep=',')
 
     ##################
 
@@ -221,6 +225,9 @@ def calculate_satellite_position(ephemeris, transmit_time):
     sv_position['x_k'] = x_k_prime * np.cos(Omega_k) - y_k_prime * np.cos(i_k) * np.sin(Omega_k)
     sv_position['y_k'] = x_k_prime * np.sin(Omega_k) + y_k_prime * np.cos(i_k) * np.cos(Omega_k)
     sv_position['z_k'] = y_k_prime * np.sin(i_k)
+    sv_position['Cn0'] = transmit_time['Cn0DbHz']  # Assuming 'Cn0DbHz' holds C/N0 values
+
+
 
     ###### PSEUDO RANGE ######
     # initial guesses of receiver clock bias and position
@@ -259,5 +266,10 @@ def least_squares(xs, measured_pseudorange, x0, b0):
     norm_dp = np.linalg.norm(deltaP)
     return x0, b0, norm_dp
 
+    print(f"C/N0 values extracted to {output_filepath}")
 if __name__ == "__main__":
     main()
+    #input_filepath = os.path.join(parent_directory ,'gnss-analysis' , 'data', 'sample', 'gnss_log_2020_12_02_17_19_39.txt')
+    #print(input_filepath)
+    #output_filepath = "C:\\Users\\sygw6\\OneDrive\\שולחן העבודה\\CN.txt"
+    #extract_cn0(input_filepath,output_filepath)

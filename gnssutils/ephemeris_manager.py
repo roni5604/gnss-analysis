@@ -32,7 +32,7 @@ class EphemerisManager():
             data = data.loc[data['sv'].isin(satellites)]
         data = data.loc[data['time'] < timestamp]
         data = data.sort_values('time').groupby(
-            'sv').last().drop('index', 'columns')
+            'sv').last().drop(labels='index', axis='columns')
         data['Leap Seconds'] = self.leapseconds
         return data
 
@@ -66,9 +66,10 @@ class EphemerisManager():
                 if not legacy_systems_only:
                     data_list.append(self.get_ephemeris_dataframe(
                         filepaths['bkg_daily_combined']))
-
-        data = pd.DataFrame()
-        data = data.append(data_list, ignore_index=True)
+        #
+        #data = pd.DataFrame()
+        #data = data.append(data_list, ignore_index=True)
+        data = pd.concat(data_list, ignore_index=True)
         data.reset_index(inplace=True)
         data.sort_values('time', inplace=True, ignore_index=True)
         self.data = data
