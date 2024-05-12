@@ -1,0 +1,5 @@
+[console_scripts]
+crx2rnx = hatanaka.cli:crx2rnx
+rinex-compress = hatanaka.cli:compress_cli
+rinex-decompress = hatanaka.cli:decompress_cli
+rnx2crx = hatanaka.cli:rnx2crx
