@@ -3,6 +3,7 @@
 
 ## Overview
 This Python script is designed for in-depth analysis of GNSS (Global Navigation Satellite System) data. It processes raw GNSS log files to extract and calculate satellite positions, receiver positions, and other navigation solutions using GPS data and ephemeris information. The goal is to facilitate the understanding and visualization of GNSS data characteristics for research or practical applications.
+- A more detailed explanation including articles on the subject and helpful materials See this https://www.johnsonmitchelld.com/2021/03/14/least-squares-gps.html
 
 ## Prerequisites
 - **Python 3.7+**: This version or newer is required for script compatibility.
