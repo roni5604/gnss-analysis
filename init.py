@@ -162,10 +162,12 @@ def main():
 
     ned_df = pd.DataFrame(ned_array, columns=['N', 'E', 'D'])
 
+
     # Save LLA and NED data to CSV files
     pd.DataFrame(lla_array, columns=['Latitude', 'Longitude', 'Altitude']).to_csv('calculated_position.csv',
                                                                                   index=False)
     pd.DataFrame(ned_array, columns=['N', 'E', 'D']).to_csv('ned_position.csv', index=False)
+
 
     # Export android fixes DataFrame to CSV
     android_fixes.to_csv('android_position.csv', index=False)
