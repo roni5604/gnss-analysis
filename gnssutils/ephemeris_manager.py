@@ -66,6 +66,8 @@ class EphemerisManager():
                 if not legacy_systems_only:
                     data_list.append(self.get_ephemeris_dataframe(
                         filepaths['bkg_daily_combined']))
+
+       
         #
         #data = pd.DataFrame()
         #data = data.append(data_list, ignore_index=True)
