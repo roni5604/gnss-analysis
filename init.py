@@ -13,7 +13,7 @@ def main():
 
     # Setup directory paths for data and scripts
     # Get path to sample file in data directory, which is located in the parent directory of this notebook
-    input_filepath = os.path.join(parent_directory ,'gnss-analysis' , 'data', 'sample', 'gnss_log_2024_04_13_19_52_00.txt')
+    input_filepath = os.path.join(parent_directory ,'gnss-analysis' , 'data', 'sample','Driving' ,'gnss_log_2024_04_13_19_53_33.txt')
     android_fixes = []
     measurements = []
 
@@ -72,7 +72,7 @@ def main():
     print(measurements.columns)
 
     ##########################################################
-
+    ##########################################################
     measurements['GpsTimeNanos'] = measurements['TimeNanos'] - (
                 measurements['FullBiasNanos'] - measurements['BiasNanos'])
     gpsepoch = datetime(1980, 1, 6, 0, 0, 0)
@@ -102,7 +102,7 @@ def main():
     measurements['PrM'] = LIGHTSPEED * measurements['prSeconds']
     measurements['PrSigmaM'] = LIGHTSPEED * 1e-9 * measurements['ReceivedSvTimeUncertaintyNanos']
 
-    #####################################
+
 
     manager = EphemerisManager(ephemeris_data_directory)
     #
@@ -121,8 +121,9 @@ def main():
     # print(timestamp)
     # print(one_epoch[['UnixTime', 'tTxSeconds', 'GpsWeekNumber']])
 
-
-    ################# Probably redundant
+    ###########################################################################
+    ################# Probably redundant ######################################
+    ###########################################################################
 
     sv_position = calculate_satellite_position(ephemeris, one_epoch)
     print(sv_position)
@@ -158,7 +159,6 @@ def main():
 
     print(ned_array)
 
-    ###################
 
     ned_df = pd.DataFrame(ned_array, columns=['N', 'E', 'D'])
 
@@ -264,8 +264,9 @@ def calculate_satellite_position(ephemeris, transmit_time):
     sv_position['Cn0'] = transmit_time['Cn0DbHz']  # Assuming 'Cn0DbHz' holds C/N0 values
 
 
-
-    ###### PSEUDO RANGE ######
+    ################################################################################
+    ################################# PSEUDO RANGE #################################
+    ################################################################################
     # initial guesses of receiver clock bias and position
     b0 = 0
     x0 = np.array([0, 0, 0])
