@@ -10,11 +10,14 @@ from gnssutils import EphemerisManager
 import matplotlib.pyplot as plt
 
 def main():
+
+    # Setup directory paths for data and scripts
     # Get path to sample file in data directory, which is located in the parent directory of this notebook
-    input_filepath = os.path.join(parent_directory, 'data', 'sample', 'gnss_log_2020_12_02_17_19_39.txt')
+    input_filepath = os.path.join(parent_directory ,'gnss-analysis' , 'data', 'sample','Driving' ,'gnss_log_2024_04_13_19_53_33.txt')
     android_fixes = []
     measurements = []
 
+    # Read GNSS data from CSV file
     with open(input_filepath) as csvfile:
         reader = csv.reader(csvfile)
         for row in reader:
@@ -29,6 +32,7 @@ def main():
                 elif row[0] == 'Raw':
                     measurements.append(row[1:])
 
+    # Convert lists to DataFrames for easier manipulation
     android_fixes = pd.DataFrame(android_fixes[1:], columns=android_fixes[0])
     measurements = pd.DataFrame(measurements[1:], columns=measurements[0])
 
@@ -46,6 +50,8 @@ def main():
 
     # Convert columns to numeric representation
     measurements['Cn0DbHz'] = pd.to_numeric(measurements['Cn0DbHz'])
+    # Adding a new column for CH0 based on Cn0DbHz
+    measurements['CH0'] = measurements['Cn0DbHz']  # Copying or transforming the C/N0 data
     measurements['TimeNanos'] = pd.to_numeric(measurements['TimeNanos'])
     measurements['FullBiasNanos'] = pd.to_numeric(measurements['FullBiasNanos'])
     measurements['ReceivedSvTimeNanos'] = pd.to_numeric(measurements['ReceivedSvTimeNanos'])
@@ -66,7 +72,7 @@ def main():
     print(measurements.columns)
 
     ##########################################################
-
+    ##########################################################
     measurements['GpsTimeNanos'] = measurements['TimeNanos'] - (
                 measurements['FullBiasNanos'] - measurements['BiasNanos'])
     gpsepoch = datetime(1980, 1, 6, 0, 0, 0)
@@ -96,34 +102,35 @@ def main():
     measurements['PrM'] = LIGHTSPEED * measurements['prSeconds']
     measurements['PrSigmaM'] = LIGHTSPEED * 1e-9 * measurements['ReceivedSvTimeUncertaintyNanos']
 
-    #####################################
+
 
     manager = EphemerisManager(ephemeris_data_directory)
     #
-    # epoch = 0
-    # num_sats = 0
-    # while num_sats < 5:
-    #     one_epoch = measurements.loc[
-    #         (measurements['Epoch'] == epoch) & (measurements['prSeconds'] < 0.1)].drop_duplicates(subset='SvName')
-    #     timestamp = one_epoch.iloc[0]['UnixTime'].to_pydatetime(warn=False)
-    #     one_epoch.set_index('SvName', inplace=True)
-    #     num_sats = len(one_epoch.index)
-    #     epoch += 1
+    epoch = 0
+    num_sats = 0
+    while num_sats < 5:
+         one_epoch = measurements.loc[
+             (measurements['Epoch'] == epoch) & (measurements['prSeconds'] < 0.1)].drop_duplicates(subset='SvName')
+         timestamp = one_epoch.iloc[0]['UnixTime'].to_pydatetime(warn=False)
+         one_epoch.set_index('SvName', inplace=True)
+         num_sats = len(one_epoch.index)
+         epoch += 1
     #
-    # sats = one_epoch.index.unique().tolist()
-    # ephemeris = manager.get_ephemeris(timestamp, sats)
+    sats = one_epoch.index.unique().tolist()
+    ephemeris = manager.get_ephemeris(timestamp, sats)
     # print(timestamp)
     # print(one_epoch[['UnixTime', 'tTxSeconds', 'GpsWeekNumber']])
 
+    ###########################################################################
+    ################# Probably redundant ######################################
+    ###########################################################################
 
-    ################# Probably redundant
+    sv_position = calculate_satellite_position(ephemeris, one_epoch)
+    print(sv_position)
+    sv_position.to_csv("result_assignment_2.csv", sep=',')
 
-    # sv_position = calculate_satellite_position(ephemeris, one_epoch)
-    # print(sv_position)
-    #sv_position.to_csv("result_assignment_2.csv", sep=',')
 
-    ##################
-
+    # Calculate and plot ECEF coordinates
     ecef_list = []
     for epoch in measurements['Epoch'].unique():
         one_epoch = measurements.loc[(measurements['Epoch'] == epoch) & (measurements['prSeconds'] < 0.1)]
@@ -152,33 +159,66 @@ def main():
 
     print(ned_array)
 
-    ###################
 
     ned_df = pd.DataFrame(ned_array, columns=['N', 'E', 'D'])
+
+    # Save LLA and NED data to CSV files
+    pd.DataFrame(lla_array, columns=['Latitude', 'Longitude', 'Altitude']).to_csv('calculated_position.csv',
+                                                                                  index=False)
+    pd.DataFrame(ned_array, columns=['N', 'E', 'D']).to_csv('ned_position.csv', index=False)
+
+    # Export android fixes DataFrame to CSV
+    android_fixes.to_csv('android_position.csv', index=False)
+
+    ###################################################################################################
+    ################################ Plot Section #####################################################
+    ###################################################################################################
     plt.style.use('dark_background')
     plt.plot(ned_df['E'], ned_df['N'])
-
     # Add titles
     plt.title('Position Offset From First Epoch')
     plt.xlabel("East (m)")
     plt.ylabel("North (m)")
     plt.gca().set_aspect('equal', adjustable='box')
-
-    plt.show()
-
+    #plt.show()
+    columns_for_end_csv = ["GpsTimeNanos", "Svid", "PrM", "Cn0DbHz"]
 
 def calculate_satellite_position(ephemeris, transmit_time):
+    """
+    Calculate the position of satellites based on ephemeris data and transmit times.
+
+    Args:
+    ephemeris (DataFrame): A DataFrame containing the ephemeris data for each satellite.
+    transmit_time (DataFrame): A DataFrame containing transmission times and other relevant data for each satellite.
+
+    Returns:
+    DataFrame: A DataFrame containing the computed satellite positions in ECEF coordinates, along with satellite clock corrections.
+    """
+
+    # Gravitational constant for Earth (m^3/s^2)
     mu = 3.986005e14
+    # Earth's rotation rate (rad/s)
     OmegaDot_e = 7.2921151467e-5
+    # Relativity correction coefficient
     F = -4.442807633e-10
+
+    # Initialize DataFrame for storing satellite positions
     sv_position = pd.DataFrame()
     sv_position['sv'] = ephemeris.index
     sv_position.set_index('sv', inplace=True)
+
+    # Time from ephemeris reference epoch
     sv_position['t_k'] = transmit_time['tTxSeconds'] - ephemeris['t_oe']
     A = ephemeris['sqrtA'].pow(2)
+
+    # Compute the mean motion
     n_0 = np.sqrt(mu / A.pow(3))
     n = n_0 + ephemeris['deltaN']
+
+    # Compute the mean anomaly
     M_k = ephemeris['M_0'] + n * sv_position['t_k']
+
+    # Solve Kepler's equation for the eccentric anomaly
     E_k = M_k
     err = pd.Series(data=[1] * len(sv_position.index))
     i = 0
@@ -199,19 +239,19 @@ def calculate_satellite_position(ephemeris, transmit_time):
 
     Phi_k = v_k + ephemeris['omega']
 
+    # Compute the corrections for argument of latitude, radius and inclination
     sin2Phi_k = np.sin(2 * Phi_k)
     cos2Phi_k = np.cos(2 * Phi_k)
-
     du_k = ephemeris['C_us'] * sin2Phi_k + ephemeris['C_uc'] * cos2Phi_k
     dr_k = ephemeris['C_rs'] * sin2Phi_k + ephemeris['C_rc'] * cos2Phi_k
     di_k = ephemeris['C_is'] * sin2Phi_k + ephemeris['C_ic'] * cos2Phi_k
 
+    # Compute the corrected orbital parameters
     u_k = Phi_k + du_k
-
     r_k = A * (1 - ephemeris['e'] * np.cos(E_k)) + dr_k
-
     i_k = ephemeris['i_0'] + di_k + ephemeris['IDOT'] * sv_position['t_k']
 
+    # Compute positions in the orbital plane
     x_k_prime = r_k * np.cos(u_k)
     y_k_prime = r_k * np.sin(u_k)
 
@@ -221,8 +261,12 @@ def calculate_satellite_position(ephemeris, transmit_time):
     sv_position['x_k'] = x_k_prime * np.cos(Omega_k) - y_k_prime * np.cos(i_k) * np.sin(Omega_k)
     sv_position['y_k'] = x_k_prime * np.sin(Omega_k) + y_k_prime * np.cos(i_k) * np.cos(Omega_k)
     sv_position['z_k'] = y_k_prime * np.sin(i_k)
+    sv_position['Cn0'] = transmit_time['Cn0DbHz']  # Assuming 'Cn0DbHz' holds C/N0 values
 
-    ###### PSEUDO RANGE ######
+
+    ################################################################################
+    ################################# PSEUDO RANGE #################################
+    ################################################################################
     # initial guesses of receiver clock bias and position
     b0 = 0
     x0 = np.array([0, 0, 0])
@@ -240,6 +284,19 @@ def calculate_satellite_position(ephemeris, transmit_time):
     return sv_position
 
 def least_squares(xs, measured_pseudorange, x0, b0):
+    """
+    Perform a least squares adjustment to estimate the receiver's position and clock bias based on satellite positions and measured pseudoranges.
+
+    Args:
+    xs (numpy.ndarray): Satellite positions in ECEF coordinates, shape (n, 3) where n is the number of satellites.
+    measured_pseudorange (numpy.ndarray): Observed pseudoranges for each satellite, shape (n,).
+    x0 (numpy.ndarray): Initial estimate of receiver position in ECEF coordinates, shape (3,).
+    b0 (float): Initial estimate of receiver clock bias in meters.
+
+    Returns:
+    tuple: Updated receiver position in ECEF coordinates (numpy.ndarray), updated receiver clock bias in meters (float), and the norm of pseudorange residuals (float).
+    """
+
     dx = 100*np.ones(3)
     b = b0
     # set up the G matrix with the right dimensions. We will later replace the first 3 columns
@@ -258,6 +315,8 @@ def least_squares(xs, measured_pseudorange, x0, b0):
         b0 = b0 + db
     norm_dp = np.linalg.norm(deltaP)
     return x0, b0, norm_dp
+
+    print(f"C/N0 values extracted to {output_filepath}")
 
 if __name__ == "__main__":
     main()

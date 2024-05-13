@@ -67,8 +67,11 @@ class EphemerisManager():
                     data_list.append(self.get_ephemeris_dataframe(
                         filepaths['bkg_daily_combined']))
 
+       
+        #
+        #data = pd.DataFrame()
+        #data = data.append(data_list, ignore_index=True)
         data = pd.concat(data_list, ignore_index=True)
-
         data.reset_index(inplace=True)
         data.sort_values('time', inplace=True, ignore_index=True)
         self.data = data
