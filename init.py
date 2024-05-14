@@ -13,8 +13,8 @@ def main():
 
     # Setup directory paths for data and scripts
     # Get path to sample file in data directory, which is located in the parent directory of this notebook
-    input_filepath = os.path.join(parent_directory ,'gnss-analysis' , 'data', 'sample','Driving' ,'gnss_log_2024_04_13_19_53_33.txt')
     android_fixes = []
+    input_filepath = os.path.join(parent_directory, 'data', 'sample', 'Driving', 'gnss_log_2024_04_13_19_53_33.txt')
     measurements = []
 
     # Read GNSS data from CSV file
