@@ -1,4 +1,5 @@
 import sys, os, csv
+import simplekml
 parent_directory = os.path.split(os.getcwd())[0]
 ephemeris_data_directory = os.path.join(parent_directory, 'data')
 sys.path.insert(0, parent_directory)
@@ -121,13 +122,12 @@ def main():
     # print(timestamp)
     # print(one_epoch[['UnixTime', 'tTxSeconds', 'GpsWeekNumber']])
 
-    ###########################################################################
-    ################# Probably redundant ######################################
-    ###########################################################################
+
 
     sv_position = calculate_satellite_position(ephemeris, one_epoch)
     print(sv_position)
-    sv_position.to_csv("result_assignment_2.csv", sep=',')
+    sv_position.to_csv("parser_to_csv.csv", sep=',')
+
 
 
     # Calculate and plot ECEF coordinates
@@ -162,11 +162,36 @@ def main():
 
     ned_df = pd.DataFrame(ned_array, columns=['N', 'E', 'D'])
 
-
+######### mission 4 ############
     # Save LLA and NED data to CSV files
-    pd.DataFrame(lla_array, columns=['Latitude', 'Longitude', 'Altitude']).to_csv('calculated_position.csv',
+    #convert pos x pos y pos z to lan lot alt
+    pd.DataFrame(lla_array, columns=['Latitude', 'Longitude', 'Altitude']).to_csv('calculated_position_lan_lot_alt.csv',
                                                                                   index=False)
     pd.DataFrame(ned_array, columns=['N', 'E', 'D']).to_csv('ned_position.csv', index=False)
+
+######### mission 5 ############
+    # Create DataFrame with Pos.X, Pos.Y, Pos.Z, Lat, Lon, Alt
+    df = pd.DataFrame({
+        'Pos.X': ecef_array[:, 0],
+        'Pos.Y': ecef_array[:, 1],
+        'Pos.Z': ecef_array[:, 2],
+        'Latitude': lla_array[:, 0],
+        'Longitude': lla_array[:, 1],
+        'Altitude': lla_array[:, 2]
+    })
+
+    # Save to CSV file
+    df.to_csv('position_x_y_z_lan_lot_alt.csv', index=False)
+
+    # Generate KML file
+    kml = simplekml.Kml()
+    for index, row in df.iterrows():
+        kml.newpoint(name=str(index), coords=[(row['Longitude'], row['Latitude'], row['Altitude'])])
+
+    # Save KML file
+    kml.save('computed_path.kml')
+
+    print("CSV and KML files have been generated successfully.")
 
 
     # Export android fixes DataFrame to CSV
@@ -185,6 +210,7 @@ def main():
     #plt.show()
     columns_for_end_csv = ["GpsTimeNanos", "Svid", "PrM", "Cn0DbHz"]
 
+######### mission 4 ############
 def calculate_satellite_position(ephemeris, transmit_time):
     """
     Calculate the position of satellites based on ephemeris data and transmit times.
