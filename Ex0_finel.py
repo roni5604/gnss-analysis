@@ -19,8 +19,9 @@ def main():
     #if the code not running replace your path
     parent_directory = os.path.split(os.getcwd())[0]
     ephemeris_data_directory = os.path.join(parent_directory, 'data')
-    #replace your path
-    input_filepath = os.path.join(parent_directory,'gnss-analysis', 'data', 'sample', 'Driving', 'gnss_log_2024_04_13_19_53_33.txt')
+    # replace your path here
+    input_filepath = os.path.join(parent_directory,'gnss-analysis-main', 'data', 'sample', 'Driving', 'gnss_log_2024_04_13_19_53_33.txt')
+    #######
     sys.path.insert(0, parent_directory)
 
     # Initialize lists to store android fixes and measurements
@@ -155,6 +156,8 @@ def main():
         'Altitude': lla_array[:, 2]
     })
 
+
+
     # Save to CSV file
     df.to_csv('position_x_y_z_lan_lot_alt.csv', index=False)
 
@@ -165,6 +168,9 @@ def main():
 
     # Save KML file
     kml.save('computed_path.kml')
+
+    ##################### test the code #################
+    # test_function(df)
 
     print("CSV and KML files have been generated successfully.")
 
@@ -261,6 +267,17 @@ def least_squares(xs, measured_pseudorange, x0, b0):
     return x0, b0, norm_dp
 
 
+def generate_google_maps_link(lat, lon):
+    return f"https://www.google.com/maps?q={lat},{lon}"
+
+def test_function(df):
+    take_test = input("Would you like to take a test? (yes/no): ").strip().lower()
+    if take_test == 'yes':
+        print("this is the locations we calculate in google maps")
+        for index, row in df.iterrows():
+            link = generate_google_maps_link(row['Latitude'], row['Longitude'])
+            print(f"Location {index}: Latitude: {row['Latitude']}, Longitude: {row['Longitude']}, Altitude: {row['Altitude']}")
+            print(f"Google Maps Link: {link}\n")
 
 if __name__ == "__main__":
     main()

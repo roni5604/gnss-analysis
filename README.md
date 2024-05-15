@@ -130,6 +130,31 @@ plt.gca().set_aspect('equal', adjustable='box')
 ```
 The script saves various positional data in different formats and generates a KML file for visualization in mapping software.
 
+### Part 8: Test Functionality
+
+**Test Functionality**: The script includes a test function that allows users to see Google Maps links for calculated positions.
+
+```python
+def generate_google_maps_link(lat, lon):
+    return f"https://www.google.com/maps?q={lat},{lon}"
+
+def test_function(df):
+    take_test = input("Would you like to take a test? (yes/no): ").strip().lower()
+    if take_test == 'yes':
+        for index, row in df.iterrows():
+            link = generate_google_maps_link(row['Latitude'], row['Longitude'])
+            print(f"Location {index}: Latitude: {row['Latitude']}, Longitude: {row['Longitude']}, Altitude: {row['Altitude']}")
+            print(f"Google Maps Link: {link}\n")
+```
+
+To activate the test function, uncomment the following line in the main code (line 172):
+
+```python
+# test_function(df)
+```
+
+The `test_function(df)` prints Google Maps links for each location in the DataFrame.
+
 ## Contributing
 Contributions to improve the script are welcome. Please fork the repository, make your changes, and submit a pull request.
 
